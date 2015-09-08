@@ -1,0 +1,71 @@
+ //UPLOD FILES TO CSGRID
+ private void teste(){
+
+    
+    for(String inputFileList: inputFile){
+    
+    List<File> inputFiles = inputs.getInputFiles(inputFile);
+
+        boolean uploadOK = true;
+        List<String> fileNames = new ArrayList();
+
+
+        for (File file : inputFiles) {
+
+            if (!uploadFile(file)) {
+
+                uploadOK = false;
+                throw new RuntimeException("UPLOAD PROBLEM");
+
+            } else {
+
+                fileNames.add(file.getName());
+            }
+
+        }
+    }
+    
+ }
+
+
+
+try {
+		String filepath = path;
+		DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+		Document doc = docBuilder.parse(filepath);
+
+		// Get the root element
+		Node company = doc.getFirstChild();
+
+		// Get the staff element , it may not working if tag has spaces, or
+		// whatever weird characters in front...it's better to use
+		// getElementsByTagName() to get it directly.
+		// Node staff = company.getFirstChild();
+
+		// Get the staff element by tag name directly
+		Node staff = doc.getElementsByTagName("artifactId").item(0);
+                staff.setNodeValue(nameProject);
+		
+		
+		
+
+		// write the content into xml file
+		TransformerFactory transformerFactory = TransformerFactory.newInstance();
+		Transformer transformer = transformerFactory.newTransformer();
+		DOMSource source = new DOMSource(doc);
+ 		StreamResult result = new StreamResult(new File(filepath));
+		transformer.transform(source, result);
+
+		System.out.println("Done");
+
+	   } catch (ParserConfigurationException pce) {
+		pce.printStackTrace();
+	   } catch (TransformerException tfe) {
+		tfe.printStackTrace();
+	   } catch (IOException ioe) {
+		ioe.printStackTrace();
+	   } catch (SAXException sae) {
+		sae.printStackTrace();
+	   }
+        

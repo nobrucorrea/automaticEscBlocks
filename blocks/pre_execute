@@ -1,0 +1,213 @@
+@Override
+public void preExecute(BlockEnvironment env) throws MalformedURLException, IOException, JSONException, InterruptedException {
+        URL url;
+
+        InputStream inputStream = getClass().getClassLoader().getResourceAsStream("config.properties");
+        Properties prop = new Properties();
+        prop.load(inputStream);
+        this.user = prop.getProperty("CSGRID_USER");
+        this.password = prop.getProperty("CSGRID_PASSWORD");
+        this.loginURL = prop.getProperty("LOGIN_URL");
+
+        url = new URL(this.loginURL);
+
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        // for https
+        //HttpsURLConnection connection = (HttpsURLConnection)
+        // url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+
+        StringBuilder parameters = new StringBuilder();
+        parameters.append("username=");
+        parameters.append(this.user);
+        parameters.append("&");
+        parameters.append("password=");
+        parameters.append(this.password);
+
+        //String parameters = "username=brunos&password=ee1212";
+        DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
+        wr.writeBytes(parameters.toString());
+        wr.flush();
+        wr.close();
+        int code = connection.getResponseCode();
+        // 200 is http success code
+        if (code == 200) {
+            System.out.println("Login OK");
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            String response = "";
+            String line = null;
+            while ((line = in.readLine()) != null) {
+                response += line;
+            }
+            in.close();
+            JSONObject json = new JSONObject(response);
+            int codeUuid = json.getInt("code");
+            System.out.println(codeUuid);
+            if (codeUuid == 200) {
+
+                this.uuid = json.getString("uuid");
+                System.out.println("uuid" + this.uuid);
+
+                
+                //creating submission directory to storing submission data
+                //teh directory name is the date and time of submission
+                createSubmissionDirectory();
+                Thread.sleep(5000);
+
+            } else {
+
+                throw new RuntimeException("login failure");
+
+            }
+
+        }
+
+}
+
+
+
+
+private void createSubmissionDirectory() throws MalformedURLException, IOException, JSONException {
+
+        /*
+         uuid - Universally unique identifier of the user.
+         project - A project owned by the user.
+         parents - (optional) The parents directory. Null if there is no parents. Parents are separated using the '/' character.
+         file - The file name.
+         directory - True if it is a directory or false if it is a file.   
+         */
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd_MM_yyyy_HH_mm_ss");
+        this.submissionDirectory = sdf.format(cal.getTime());
+        
+        URL url = new URL("http://sinapad-01.sinapad.lncc.br:8080/sinapad-rest/rest/file/create");
+
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        // for https
+        //HttpsURLConnection connection = (HttpsURLConnection)
+        // url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+
+        StringBuilder parameters = new StringBuilder();
+        parameters.append("uuid=");
+        parameters.append(this.uuid);
+        parameters.append("&");
+        parameters.append("project=eSC&");
+        //parameters.append("parents=/&");
+        parameters.append("file=");
+        parameters.append(this.submissionDirectory);
+        parameters.append("&");
+        parameters.append("directory=true");
+        
+
+        //String parameters = "username=brunos&password=ee1212";
+        DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
+        wr.writeBytes(parameters.toString());
+        wr.flush();
+        wr.close();
+        int code = connection.getResponseCode();
+        // 200 is http success code
+        if (code == 200) {
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            String response = "";
+            String line = null;
+            while ((line = in.readLine()) != null) {
+                response += line;
+            }
+            in.close();
+            JSONObject json = new JSONObject(response);
+            int codeUuid = json.getInt("code");
+            System.out.println(codeUuid);
+            if (codeUuid == 200) {
+
+                System.out.println("creating submission directory  OK");
+
+            } else {
+
+                throw new RuntimeException("creating submission directory failure - CODE " + codeUuid);
+
+            }
+
+        }
+
+    }
+}
+
+
+private void createOutputFile() throws MalformedURLException, IOException, JSONException {
+
+        /*
+         uuid - Universally unique identifier of the user.
+         project - A project owned by the user.
+         parents - (optional) The parents directory. Null if there is no parents. Parents are separated using the '/' character.
+         file - The file name.
+         directory - True if it is a directory or false if it is a file.   
+         */
+        
+        Calendar cal = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH_mm_ss"); 
+        this.outputFileName = this.user + sdf.format(cal.getTime());
+        
+        URL url = new URL("http://sinapad-01.sinapad.lncc.br:8080/sinapad-rest/rest/file/create");
+
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        // for https
+        //HttpsURLConnection connection = (HttpsURLConnection)
+        // url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+
+        StringBuilder parameters = new StringBuilder();
+        parameters.append("uuid=");
+        parameters.append(this.uuid);
+        parameters.append("&");
+        parameters.append("project=eSC&");
+        parameters.append("parents=");
+        parameters.append(this.submissionDirectory);
+        parameters.append("&");
+        parameters.append("file=");
+        parameters.append(this.outputFileName);
+        parameters.append("&");
+        parameters.append("directory=false");
+        
+
+        //String parameters = "username=brunos&password=ee1212";
+        DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
+        wr.writeBytes(parameters.toString());
+        wr.flush();
+        wr.close();
+        int code = connection.getResponseCode();
+        // 200 is http success code
+        if (code == 200) {
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            String response = "";
+            String line = null;
+            while ((line = in.readLine()) != null) {
+                response += line;
+            }
+            in.close();
+            JSONObject json = new JSONObject(response);
+            int codeUuid = json.getInt("code");
+            System.out.println(codeUuid);
+            if (codeUuid == 200) {
+
+                System.out.println("create output file OK");
+
+            } else {
+
+                throw new RuntimeException("create output file failure code " + codeUuid);
+
+            }
+
+        }
+
+}
+
+
+
+

@@ -1,0 +1,69 @@
+private void downloadFile() throws MalformedURLException, IOException, JSONException {
+
+        /*
+         uuid - Universally unique identifier of the user.
+         project - A project owned by the user.
+         parents  - (optional) The parents directory. Null if there is no parents. Parents are separated using the '/' character.
+         file - The file name.
+         Returns:
+         A streaming for download the file and a result containing the code of the result. 
+         OK - if success;        
+         */
+        URL url = new URL("http://sinapad-01.sinapad.lncc.br:8080/sinapad-rest/rest/file/download");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+
+        StringBuilder parameters = new StringBuilder();
+        parameters.append("uuid=");
+        parameters.append(this.uuid);
+        parameters.append("&");
+        parameters.append("project=eSC&");
+        parameters.append("parents=");
+        parameters.append(this.submissionDirectory);
+        parameters.append("&");
+        parameters.append("file=");
+        parameters.append(this.outputFileName);
+        
+        DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
+        wr.writeBytes(parameters.toString());
+        wr.flush();
+        wr.close();
+
+        int submissionCode = connection.getResponseCode();
+        System.out.println("submission code " + submissionCode);
+
+        // 200 is http success code
+        if (submissionCode == 200) {
+            System.out.println("submisssion OK");
+
+            /*BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+             String response = "";
+             String line = null;
+            
+             while ((line = in.readLine()) != null) {
+             response += line;
+             }
+             in.close();*/
+            InputStream input = connection.getInputStream();
+
+            saida = new File(this.outputFileName);
+
+            byte[] buffer = new byte[4096];
+            int n = - 1;
+
+            OutputStream output = new FileOutputStream(saida);
+
+            while ((n = input.read(buffer)) != -1) {
+                if (n > 0) {
+                    output.write(buffer, 0, n);
+                }
+            }
+            output.close();
+        }
+
+    }
+
+
+

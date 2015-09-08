@@ -1,0 +1,10 @@
+private String uuid;
+private String user;
+private String uuid;
+private String user;
+private String password;
+private String loginURL;
+private String outputFileName;
+private String submissionDirectory;
+private File saida;
+$PROPERTIES

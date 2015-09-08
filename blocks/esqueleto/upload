@@ -1,0 +1,92 @@
+private boolean uploadFile(File file) throws IOException, JSONException {
+
+        System.out.println("cheguei no UPLOAD");
+        /*
+         uuid - Universally unique identifier of the user.
+         project - A project owned by the user.
+         parents - (optional) The parents directory. Null if there is no parents. Parents are separated using the '/' character.
+         file - The file.
+         content - The file content.
+         override - True if the file already exists and want to override.uuid - Universally unique identifier of the user.
+         project - A project owned by the user.
+         parents - (optional) The parents directory. Null if there is no parents. Parents are separated using the '/' character.
+         is - The file.
+         content - The file content. optional
+         override - True if the file already exists and want to override. - optional
+         */
+        //File file = new File("/Users/operador/Documents/cs.txt");
+        //variaveis para montagem do POST
+        String attachmentName = "file"; // <- em vez de 'is', use file como nome do parâmetro.
+        String attachmentFileName = file.getName();
+        String crlf = "\r\n";
+        String twoHyphens = "--";
+        String boundary = "*****";
+        String project = "eSC";
+
+        byte[] arr = Files.readAllBytes(file.toPath());
+
+        //montagem do POST
+        URL urlUpload = new URL("http://sinapad-01.sinapad.lncc.br:8080/sinapad-rest/rest/file/upload");
+        HttpURLConnection uploadConnection = (HttpURLConnection) urlUpload.openConnection();
+        uploadConnection.setRequestMethod("POST");
+        uploadConnection.setDoOutput(true);
+        uploadConnection.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
+        uploadConnection.setRequestProperty("Accept", "application/json");
+
+        DataOutputStream wrUpload = new DataOutputStream(uploadConnection.getOutputStream());
+        wrUpload.writeBytes(twoHyphens + boundary + crlf);
+        wrUpload.writeBytes("Content-Disposition: form-data; name=\"uuid\"" + crlf);
+        wrUpload.writeBytes("Content-Type: text/plain;charset=UTF-8" + crlf + "Content-Length: " + uuid.length() + crlf + crlf);
+        wrUpload.writeBytes(uuid + crlf);
+
+        //um blocodesse para cada variavel    
+        //project
+        wrUpload.writeBytes(twoHyphens + boundary + crlf);
+        wrUpload.writeBytes("Content-Disposition: form-data; name=\"project\"" + crlf);
+        wrUpload.writeBytes("Content-Type: text/plain;charset=UTF-8" + crlf + "Content-Length: " + project.length() + crlf + crlf);
+        wrUpload.writeBytes(project + crlf);
+        
+        //parents
+        wrUpload.writeBytes(twoHyphens + boundary + crlf);
+        wrUpload.writeBytes("Content-Disposition: form-data; name=\"parents\"" + crlf);
+        wrUpload.writeBytes("Content-Type: text/plain;charset=UTF-8" + crlf + "Content-Length: " + this.submissionDirectory.length() + crlf + crlf);
+        wrUpload.writeBytes(this.submissionDirectory + crlf);
+        
+
+        //um bloco dese para cada tipo file
+        wrUpload.writeBytes(twoHyphens + boundary + crlf);
+        //wrUpload.writeBytes("Content-Disposition: form-data; name=\"" + attachmentName + "\";filename=\"" + attachmentFileName + "\"" + crlf);
+        wrUpload.writeBytes("Content-Disposition: form-data; name=\"" + attachmentName + "\";filename=\"" + attachmentFileName + "\"" + crlf);
+        wrUpload.writeBytes(crlf);
+        wrUpload.write(arr);
+        wrUpload.writeBytes(crlf);
+        wrUpload.writeBytes(twoHyphens + boundary + twoHyphens + crlf);
+        wrUpload.flush();
+        wrUpload.close();
+
+        int codeUpload = uploadConnection.getResponseCode();
+        System.out.println("CODIGO UPLOAD" + codeUpload);
+
+        String responseUpload = "";
+        String lineUpload = null;
+
+        // 200 is http success code
+        if (codeUpload == 200) {
+            try (BufferedReader inUpload = new BufferedReader(new InputStreamReader(uploadConnection.getInputStream()))) {
+
+                while ((lineUpload = inUpload.readLine()) != null) {
+                    responseUpload += lineUpload;
+                }
+            }
+            JSONObject jsonUpload = new JSONObject(responseUpload);
+            System.out.println("code response" + jsonUpload.getInt("code"));
+            if (jsonUpload.getInt("code") == 200) {
+
+                System.out.println("SUCCESS!! ACABOU UPLoad");
+                return true;
+            }
+        }
+
+        return false;
+    }
+}

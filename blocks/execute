@@ -1,0 +1,155 @@
+@Override
+public void execute(BlockEnvironment env, BlockInputs inputs, BlockOutputs outputs) throws DataProcessorException, IOException, JSONException, MalformedURLException, InterruptedException {
+        //create output file
+        createOutputFile();
+        
+        //UPLOD FILES TO CSGRID
+        List<File> inputFiles = inputs.getInputFiles(Input_INPUT_1);
+        boolean uploadOK = true;
+        List<String> fileNames = new ArrayList();
+
+        for (File file : inputFiles) {
+
+            if (!uploadFile(file)) {
+
+                uploadOK = false;
+                throw new RuntimeException("UPLOAD PROBLEM");
+
+            } else {
+
+                fileNames.add(file.getName());
+            }
+
+        }
+
+        Thread.sleep(5000);
+        //RUN ALGORTIHM
+        //if (uploadOK) {
+        System.out.println("VOU EXECUTAR AGORA");
+        URL runURL = new URL("http://sinapad-01.sinapad.lncc.br:8080/sinapad-rest/rest/job-submission/run");
+        HttpURLConnection runConnection = (HttpURLConnection) runURL.openConnection();
+        runConnection.setRequestMethod("POST");
+        runConnection.setDoOutput(true);
+
+        // String runParameters = "uuid=" + uuid + "&project=eSC&application=eSC&version=1.0.0&args=INTERVAL::20";
+        StringBuilder runParameters = new StringBuilder();
+        runParameters.append("uuid=");
+        runParameters.append(this.uuid);
+        runParameters.append("&");
+        runParameters.append("project=eSC&");
+        runParameters.append("application=mc2&");
+        runParameters.append("version=2.0.0&");
+        //runParameters.append("args=INPUT::/exports.sh");
+        runParameters.append("args=INPUT::/");
+        runParameters.append(this.submissionDirectory);
+        runParameters.append("/");
+        runParameters.append(fileNames.get(0));
+        runParameters.append(";");
+        //runParameters.append("OUTPUT::/saidaesc.txt");
+        runParameters.append("OUTPUT::/");
+        runParameters.append(this.submissionDirectory);
+        runParameters.append("/");
+        runParameters.append(this.outputFileName);
+        
+        System.out.println(runParameters.toString());
+
+        DataOutputStream wr = new DataOutputStream(runConnection.getOutputStream());
+        wr.writeBytes(runParameters.toString());
+        wr.flush();
+        wr.close();
+
+        String runResponse = "";
+        {
+            BufferedReader in = new BufferedReader(new InputStreamReader(runConnection.getInputStream()));
+            String line = null;
+            while ((line = in.readLine()) != null) {
+                runResponse += line;
+            }
+            in.close();
+        }
+
+        JSONObject runJson = new JSONObject(runResponse);
+
+        String codeSubmission = runJson.getString("code");
+
+        System.out.println("CODE SUBMISSION RUN " + codeSubmission);
+
+        if (codeSubmission.equals("200")) {
+
+            String jobId = String.valueOf(runJson.getString("jobId"));
+            System.out.println("JOBID " + jobId);
+
+            if (isJobFinished(jobId)) {
+
+                System.out.println("Job Finished");
+
+                //DOWNLOAD RESULT FILE
+                downloadFile();
+                System.out.println("Download executado");
+                //insert result in output block
+                
+                
+                
+                
+                
+                
+                
+            } else {
+
+                throw new RuntimeException("JOB Status Failure");
+
+            }
+        } else {
+
+            throw new RuntimeException("RUN SUBMISSION ERROR - CODE " + codeSubmission);
+        }
+        
+        outputs.setOutputFile(Output_OUTPUT_1, saida);       
+
+    }
+
+    private boolean isJobFinished(String jobId) throws MalformedURLException, IOException, JSONException, InterruptedException {
+
+        String status = "";
+
+        do {
+            Thread.sleep(5000);
+
+            URL statusURL = new URL("http://sinapad-01.sinapad.lncc.br:8080/sinapad-rest/rest/job-monitoring/get");
+            HttpURLConnection statusConnection = (HttpURLConnection) statusURL.openConnection();
+            statusConnection.setRequestMethod("POST");
+            statusConnection.setDoOutput(true);
+
+            String statusParameters = "uuid=" + uuid + "&project=eSC&jobId=" + jobId;
+            {
+                DataOutputStream wr = new DataOutputStream(statusConnection.getOutputStream());
+                wr.writeBytes(statusParameters);
+                wr.flush();
+                wr.close();
+            }
+
+            String statusResponse = "";
+            {
+                BufferedReader in = new BufferedReader(new InputStreamReader(statusConnection.getInputStream()));
+                String line = null;
+                while ((line = in.readLine()) != null) {
+                    statusResponse += line;
+                }
+                in.close();
+            }
+            JSONObject statusJson = new JSONObject(statusResponse);
+            System.out.println("GET STATUS CODE " + statusJson.getString("code"));
+            status = statusJson.getString("status");
+
+        } while (!"DONE".equals(status) && !"FAILED".equals(status) && !"UNDETERMINED".equals(status));
+
+        if (status.equals("DONE")) {
+            return true;
+        } else {
+
+            return false;
+        }
+
+    }
+
+    

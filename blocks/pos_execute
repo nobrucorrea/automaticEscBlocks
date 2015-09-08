@@ -1,0 +1,15 @@
+@Override
+public void postExecute(BlockEnvironment env) throws Exception {
+        URL url = new URL("http://sinapad-01.sinapad.lncc.br:8080/sinapad-rest/rest/authentication/logout");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+
+        String parameters = "uuid=" + uuid;
+        DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
+        wr.writeBytes(parameters);
+        wr.flush();
+        wr.close();
+}
+
+
